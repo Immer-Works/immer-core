@@ -104,9 +104,15 @@ func handleError(err error, message string) {
   }
 }
 
-func channelsListByUsername(service *youtube.Service, part string, forUsername string) {
+func printSearchListResults(response *youtube.SearchListResponse) {
+  for _, item := range response.Items {
+          fmt.Println(item.Id.VideoId, ": ", item.Snippet.Title)
+  }
+}
+
+func channelsListByUsername(service *youtube.Service, part string, id string) {
   call := service.Channels.List(part)
-  call = call.ForUsername(forUsername)
+  call = call.Id(id)
   response, err := call.Do()
   handleError(err, "")
   fmt.Println(fmt.Sprintf("This channel's ID is %s. Its title is '%s', " +
@@ -114,6 +120,22 @@ func channelsListByUsername(service *youtube.Service, part string, forUsername s
               response.Items[0].Id,
               response.Items[0].Snippet.Title,
               response.Items[0].Statistics.ViewCount))
+}
+
+func searchListByKeyword(service *youtube.Service, part string, maxResults int64, q string, typeArgument string) {
+  call := service.Search.List(part)
+  if maxResults != 0 {
+          call = call.MaxResults(maxResults)
+  }
+  if q != "" {
+          call = call.Q(q)
+  }
+  if typeArgument != "" {
+          call = call.Type(typeArgument)
+  }
+  response, err := call.Do()
+  handleError(err, "")
+  printSearchListResults(response)
 }
 
 
@@ -136,5 +158,6 @@ func main() {
 
   handleError(err, "Error creating YouTube client")
 
-  channelsListByUsername(service, "snippet,contentDetails,statistics", "GoogleDevelopers")
+  channelsListByUsername(service, "snippet,contentDetails,statistics", "UC3RNJ6KaXqOTuPFRoQVOe-A")
+  searchListByKeyword(service, "snippet", 25, "evangelion", "")
 }
