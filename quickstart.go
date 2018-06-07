@@ -104,12 +104,6 @@ func handleError(err error, message string) {
   }
 }
 
-func printSearchListResults(response *youtube.SearchListResponse) {
-  for _, item := range response.Items {
-          fmt.Println(item.Id.VideoId, ": ", item.Snippet.Title)
-  }
-}
-
 func channelsListByUsername(service *youtube.Service, part string, id string) {
   call := service.Channels.List(part)
   call = call.Id(id)
@@ -122,7 +116,13 @@ func channelsListByUsername(service *youtube.Service, part string, id string) {
               response.Items[0].Statistics.ViewCount))
 }
 
-func searchListByKeyword(service *youtube.Service, part string, maxResults int64, q string, typeArgument string) {
+func printSearchListResults(response *youtube.SearchListResponse) {
+  for _, item := range response.Items {
+          fmt.Println(item.Id.VideoId, ": ", item.Snippet.Title)
+  }
+}
+
+func searchListByKeyword(service *youtube.Service, part string, maxResults int64, q string, typeArgument string, order string) {
   call := service.Search.List(part)
   if maxResults != 0 {
           call = call.MaxResults(maxResults)
@@ -133,10 +133,31 @@ func searchListByKeyword(service *youtube.Service, part string, maxResults int64
   if typeArgument != "" {
           call = call.Type(typeArgument)
   }
+  if order != "relevance" {
+          call = call.Order(order)
+  }
   response, err := call.Do()
   handleError(err, "")
   printSearchListResults(response)
+  commentThreadsListByVideoId(service, "snippet,replies", response.Items[0].Id.VideoId)
 }
+
+func printCommentThreadsListResults(response *youtube.CommentThreadListResponse) {
+        for _, item := range response.Items {
+                fmt.Println(item.Id, ": ", item.Snippet.TopLevelComment.Snippet.TextDisplay)
+        }
+}
+
+func commentThreadsListByVideoId(service *youtube.Service, part string, videoId string) {
+        call := service.CommentThreads.List(part)
+        if videoId != "" {
+                call = call.VideoId(videoId)
+        }
+        response, err := call.Do()
+        handleError(err, "")
+        printCommentThreadsListResults(response)
+}
+
 
 
 func main() {
@@ -149,7 +170,7 @@ func main() {
 
   // If modifying these scopes, delete your previously saved credentials
   // at ~/.credentials/youtube-go-quickstart.json
-  config, err := google.ConfigFromJSON(b, youtube.YoutubeReadonlyScope)
+  config, err := google.ConfigFromJSON(b, youtube.YoutubeForceSslScope)
   if err != nil {
     log.Fatalf("Unable to parse client secret file to config: %v", err)
   }
@@ -159,5 +180,5 @@ func main() {
   handleError(err, "Error creating YouTube client")
 
   channelsListByUsername(service, "snippet,contentDetails,statistics", "UC3RNJ6KaXqOTuPFRoQVOe-A")
-  searchListByKeyword(service, "snippet", 25, "evangelion", "")
+  searchListByKeyword(service, "snippet", 25, "evangelion", "", "relevance")
 }
